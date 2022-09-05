@@ -20,6 +20,8 @@ import java.util.Optional;
  */
 @Slf4j
 @Component
+//ApplicationListener<ContextRefreshedEvent> --> 
+//onApplicationEvent() gets called when Spring boot is done the init
 public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEvent> {
 
     private final CategoryRepository categoryRepository;
