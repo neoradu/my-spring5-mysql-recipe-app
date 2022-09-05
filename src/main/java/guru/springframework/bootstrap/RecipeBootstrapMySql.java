@@ -6,6 +6,7 @@ import guru.springframework.repositories.RecipeRepository;
 import guru.springframework.repositories.UnitOfMeasureRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +23,14 @@ import java.util.Optional;
 @Component
 //ApplicationListener<ContextRefreshedEvent> --> 
 //onApplicationEvent() gets called when Spring boot is done the init
-public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEvent> {
+@Profile({"dev","prod"})
+public class RecipeBootstrapMySql implements ApplicationListener<ContextRefreshedEvent> {
 
     private final CategoryRepository categoryRepository;
     private final RecipeRepository recipeRepository;
     private final UnitOfMeasureRepository unitOfMeasureRepository;
 
-    public RecipeBootstrap(CategoryRepository categoryRepository, RecipeRepository recipeRepository, UnitOfMeasureRepository unitOfMeasureRepository) {
+    public RecipeBootstrapMySql(CategoryRepository categoryRepository, RecipeRepository recipeRepository, UnitOfMeasureRepository unitOfMeasureRepository) {
         this.categoryRepository = categoryRepository;
         this.recipeRepository = recipeRepository;
         this.unitOfMeasureRepository = unitOfMeasureRepository;
@@ -37,14 +39,43 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
+    	setUoms();
+    	setCatagories();
         recipeRepository.saveAll(getRecipes());
         log.debug("Loading Bootstrap Data");
     }
-
+    
+    private void setUoms() {
+    	if(!unitOfMeasureRepository.findAll().iterator().hasNext()) {
+    		log.debug("Loading Bootstrap Data: Units of measure");
+    		String[] uoms = {"Teaspoon" , "Tablespoon", "Cup", "Pinch", "Ounce", "Each", "Dash", "Pint"};
+    		for (int i = 0; i < uoms.length; i++) {
+    			UnitOfMeasure uom = new UnitOfMeasure();
+    			uom.setDescription(uoms[i]);
+    			unitOfMeasureRepository.save(uom);
+    		}
+    	}
+    }
+    
+    private void setCatagories() {
+    	if(!categoryRepository.findAll().iterator().hasNext()) {
+    		log.debug("Loading Bootstrap Data: categories");
+    		String[] cats = {"American" , "Italian", "Mexican", "Fast Food"};
+    		for (int i = 0; i < cats.length; i++) {
+    			Category uom = new Category();
+    			uom.setDescription(cats[i]);
+    			categoryRepository.save(uom);
+    		}
+    	}
+    }   
     private List<Recipe> getRecipes() {
 
         List<Recipe> recipes = new ArrayList<>(2);
-
+        if(recipeRepository.findAll().iterator().hasNext()) {
+        	log.debug("Data base has records do not init");
+        	return recipes;
+        }
+        log.debug("Data base does not have records. Init!");
         //get UOMs
         Optional<UnitOfMeasure> eachUomOptional = unitOfMeasureRepository.findByDescription("Each");
 
